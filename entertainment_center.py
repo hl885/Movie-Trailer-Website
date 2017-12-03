@@ -1,14 +1,16 @@
 import media
 import fresh_tomatoes
+import grequests
 import requests
 
 
-def get_video_id(url):
-    # Retrieve youtube video id
-    payload = "{}"
-    response = requests.request("GET", url, data=payload)
-    results = response.json()["results"]
-    return results[0]["key"]
+def get_video_id(rs):
+    # Same youtube video id in a dictionary
+    video_id = {}
+    for r in rs:
+        r = r.json()
+        video_id[r["id"]] = r["results"][0]["key"]
+    return video_id
 
 
 def create_movie_list():
@@ -27,16 +29,21 @@ def create_movie_list():
     response = requests.request("GET", movie_request_uri, data=payload)
     results = response.json()["results"]
 
+    # Retrieve youtube video id asynchrounously
+    rs = []
+    for result in results:
+        rs.append(grequests.get(
+            video_id_request_uri_pre % (result["id"], api_key)))
+    rs = grequests.map(rs)
+    video_id = get_video_id(rs)
+
     # Create a list of Movie objects
     for result in results:
-        video_id_request_uri = video_id_request_uri_pre % (
-            result["id"], api_key)
-        video_id = get_video_id(video_id_request_uri)
         release_year = result["release_date"][0:4]
         movies.append(media.Movie(
             title=result["original_title"]+" ("+release_year+")",
             poster_image_url=img_uri+result["poster_path"],  # noqa
-            trailer_youtube_url=video_uri+video_id
+            trailer_youtube_url=video_uri+video_id[result["id"]]
         ))
 
     return movies
