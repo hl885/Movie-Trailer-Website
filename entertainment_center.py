@@ -2,6 +2,10 @@ import media
 import fresh_tomatoes
 import grequests
 import requests
+from flask import Flask
+
+
+app = Flask(__name__)
 
 
 def get_video_id(rs):
@@ -51,8 +55,13 @@ def create_movie_list():
 
 def main():
     # Generate movie website and open in browser
-    fresh_tomatoes.open_movies_page(create_movie_list())
+    return fresh_tomatoes.open_movies_page(create_movie_list())
+
+
+@app.route('/', methods=['GET'])
+def my_app():
+    return main()
 
 
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=8000)
